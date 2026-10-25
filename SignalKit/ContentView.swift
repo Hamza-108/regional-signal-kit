@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var model = MonitorViewModel()
+    @State private var firstRegion = false
     var body: some View {
         Group {
             if model.connected {
@@ -14,6 +15,10 @@ struct ContentView: View {
             } else { ConnectionView(model: model) }
         }
         .task { await model.restore() }
+        .onChange(of: model.connected) { _, connected in
+            if connected && model.settings.postalCode == nil { firstRegion = true }
+        }
+        .sheet(isPresented: $firstRegion) { RegionEditor(model: model) }
         .alert("Request failed", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "") }
@@ -137,13 +142,14 @@ struct SubscriptionsView: View {
             List {
                 Section { Text("Only fresh, active, exact matches can create target-price events. Grouped varieties and unknown package details are not confirmed matches.").font(.caption) }
                 ForEach(model.subscriptions) { subscription in
-                    Button { editing = subscription } label: {
+                    NavigationLink { SubscriptionComparison(model: model, subscription: subscription) } label: {
                         VStack(alignment: .leading) {
                             Text(subscription.name).font(.headline)
                             Text("\(subscription.count) × \(subscription.amount) \(subscription.unit) · target \(Money.format(subscription.targetCents))").font(.subheadline)
                             Text(subscription.enabled ? "Enabled" : "Paused").font(.caption)
                         }
                     }.tint(.primary)
+                    .swipeActions(edge: .leading) { Button("Edit") { editing = subscription } }
                     .swipeActions { Button("Remove", role: .destructive) { Task { await model.remove(subscription) } } }
                 }
                 if model.subscriptions.isEmpty { Text("No watchlist items. Add the exact product label and variant you want.") }
@@ -152,6 +158,37 @@ struct SubscriptionsView: View {
             .toolbar { Button { editing = Subscription() } label: { Image(systemName: "plus") }.accessibilityLabel("Add watch") }
             .sheet(item: $editing) { SubscriptionEditor(model: model, initial: $0) }
             .refreshable { await model.refresh() }
+        }
+    }
+}
+struct SubscriptionComparison: View {
+    @ObservedObject var model: MonitorViewModel
+    let subscription: Subscription
+    @State private var page: OfferPage?
+    @State private var failure: String?
+    var body: some View {
+        List {
+            Section {
+                Text("Current advertised matches for the specified package. Scope and price conditions still apply; this is not a stock check.").font(.caption)
+            }
+            ForEach(page?.data ?? []) { offer in
+                NavigationLink { OfferDetail(offer: offer, model: model) } label: {
+                    VStack(alignment: .leading) {
+                        HStack { Text(offer.provider); Spacer(); Text(Money.format(offer.priceCents)) }
+                        Text("\(offer.package) · \(offer.match ?? "uncertain") · \(offer.eligibility)").font(.caption)
+                        Text(offer.storeId ?? "National — branch applicability unknown").font(.caption)
+                        if offer.stale == true { Text("Outdated").foregroundStyle(.orange) }
+                    }
+                }
+            }
+            if page?.data.isEmpty == true { Text("No current matches in the available partial data.") }
+            if let failure { Text(failure) }
+        }
+        .navigationTitle(subscription.name)
+        .task {
+            guard let api = model.client else { return }
+            do { page = try await api.get("v1/offers", query: [URLQueryItem(name: "watch_id", value: subscription.id), URLQueryItem(name: "period", value: "current"), URLQueryItem(name: "limit", value: "200")]) }
+            catch { failure = "Comparison could not be loaded." }
         }
     }
 }
