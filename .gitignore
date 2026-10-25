@@ -1,0 +1,11 @@
+.local-docs/
+.env
+.env.*
+data/
+*.sqlite*
+build/
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+.DS_Store
