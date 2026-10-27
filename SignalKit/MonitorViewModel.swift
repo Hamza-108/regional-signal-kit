@@ -47,8 +47,16 @@ import SwiftUI
         catch { self.error = message(error) }
         // Loading saved data never contacts a server or starts collection.
     }
+    #if DEBUG
+    init(testStore: SnapshotStore, testSession: URLSession) {
+        store = testStore; session = testSession; testCredentials = true
+    }
+    #endif
     private func credential(for address: String) -> String? {
-        testCredentials ? "synthetic-only" : Credentials.read(for: address)
+        #if DEBUG
+        if testCredentials { return "synthetic-only" }
+        #endif
+        return Credentials.read(for: address)
     }
     private func api() throws -> APIClient {
         let url = try APIClient.validatedAddress(savedAddress)
