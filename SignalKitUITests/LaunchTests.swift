@@ -35,7 +35,7 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(offline.navigationBars["Details"].waitForExistence(timeout:10))
         XCTAssertTrue(offline.staticTexts["Advertised goods price"].exists)
         offline.navigationBars.buttons.element(boundBy:0).tap()
-        let search = offline.textFields["offerSearch"];search.tap();search.typeText("not-present")
+        let search = offline.textFields["offerSearch"];search.tap();search.typeText("not-present\n")
         XCTAssertFalse(offline.staticTexts["Example item"].exists)
         offline.tabBars.buttons["Watchlist"].tap()
         XCTAssertTrue(offline.staticTexts["Example watch"].waitForExistence(timeout:10))

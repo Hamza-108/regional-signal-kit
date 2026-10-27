@@ -75,7 +75,11 @@ actor SnapshotStore {
                 guard allowNewInstance else { throw ClientFailure.serverChanged }
                 let archive = folder(address).appendingPathComponent("server-\(UUID().uuidString).json")
                 try APIClient.encode(old).write(to: archive, options: [.atomic, .completeFileProtection])
-            } else if snapshot.revision < old.snapshot.revision { throw ClientFailure.staleSnapshot }
+            } else if snapshot.revision < old.snapshot.revision {
+                guard allowNewInstance else { throw ClientFailure.staleSnapshot }
+                let archive = folder(address).appendingPathComponent("revision-\(UUID().uuidString).json")
+                try APIClient.encode(old).write(to: archive, options: [.atomic, .completeFileProtection])
+            }
         }
         let saved = SavedSnapshot(address: address, downloadedAt: Date().ISO8601Format(), snapshot: snapshot)
         do { try write(saved) } catch { throw ClientFailure.cacheUnavailable }

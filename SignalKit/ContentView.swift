@@ -66,6 +66,7 @@ struct SavedStatus: View {
 }
 struct OffersView: View {
     @ObservedObject var model: MonitorViewModel
+    @FocusState private var searchFocused: Bool
     var body: some View {
         NavigationStack {
             List {
@@ -74,11 +75,12 @@ struct OffersView: View {
                     Button(model.saved?.requestKey == nil ? "Refresh offers at home" : "Resume refresh") { Task { await model.refreshOffers() } }.disabled(model.busy).accessibilityIdentifier("refreshOffers")
                     Text("Only refresh on your trusted home network. Advertising coverage is partial; stock and ordinary shelf prices are not verified.").font(.caption)
                 }
-                Section { TextField("Search saved product labels", text: $model.query).accessibilityIdentifier("offerSearch") }
+                Section { TextField("Search saved product labels", text: $model.query).focused($searchFocused).submitLabel(.search).onSubmit { searchFocused = false }.accessibilityIdentifier("offerSearch") }
                 Section("Now / later this week") { ForEach(model.filteredOffers.filter { !OfferWindow.nextWeek($0) }) { offer in row(offer) } }
                 Section("Next week") { ForEach(model.filteredOffers.filter { OfferWindow.nextWeek($0) }) { offer in row(offer) } }
                 if model.filteredOffers.isEmpty { Text("No matches in the downloaded data. Check source status and the downloaded date window; this does not prove there are no promotions.") }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Offers")
             .refreshable { await model.refreshOffers() }
         }

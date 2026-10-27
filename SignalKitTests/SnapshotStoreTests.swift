@@ -53,3 +53,21 @@ final class SnapshotStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf:url),future)
     }
 }
+
+extension SnapshotStoreTests {
+    func testExplicitReconnectArchivesUnreadableCacheAndRestoredOlderRevision() async throws {
+        let path = root();let store = SnapshotStore(root:path);let snapshot = try UITestSupport.fixture()
+        _ = try await store.save(modified(snapshot,revision:3),address:address)
+        _ = try await store.save(snapshot,address:address,allowNewInstance:true)
+        let restored = try await store.load(address:address);XCTAssertEqual(restored?.snapshot.revision,1)
+        let files = try FileManager.default.subpathsOfDirectory(atPath:path.path)
+        let primary = path.appendingPathComponent(files.first { $0.hasSuffix("/snapshot.json") }!)
+        let previous = path.appendingPathComponent(files.first { $0.hasSuffix("/previous.json") }!)
+        try Data("corrupt-primary".utf8).write(to:primary,options:.atomic)
+        try Data("corrupt-backup".utf8).write(to:previous,options:.atomic)
+        _ = try await store.save(snapshot,address:address,allowNewInstance:true)
+        let names = try FileManager.default.subpathsOfDirectory(atPath:path.path)
+        XCTAssertEqual(names.filter { $0.contains("unreadable-") }.count,2)
+        XCTAssertEqual(names.filter { $0.contains("revision-") }.count,1)
+    }
+}
