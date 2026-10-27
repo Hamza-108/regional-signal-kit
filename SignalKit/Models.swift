@@ -130,11 +130,11 @@ struct OfflineSnapshot: Codable {
               Set(watchlist.map(\.id)).count == watchlist.count else { throw ClientFailure.invalidResponse }
         let ids = Set(offers.map(\.id)); let watches = Set(watchlist.map(\.id))
         guard matches.allSatisfy({ ids.contains($0.offerId) && watches.contains($0.watchId) }),
-              offers.allSatisfy({ $0.priceCents >= 0 && $0.validFrom <= $0.validUntil && OfferWindow.day($0.validFrom) != nil && OfferWindow.day($0.validUntil) != nil && OfferWindow.timestamp($0.fetchedAt) != nil }) else { throw ClientFailure.invalidResponse }
+              offers.allSatisfy({ (0...100_000_000).contains($0.priceCents) && ($0.depositCents == nil || (0...100_000_000).contains($0.depositCents!)) && ($0.referenceCents == nil || (0...100_000_000).contains($0.referenceCents!)) && ($0.unitPriceCents == nil || (0...100_000_000_000).contains($0.unitPriceCents!)) && $0.validFrom <= $0.validUntil && OfferWindow.day($0.validFrom) != nil && OfferWindow.day($0.validUntil) != nil && OfferWindow.timestamp($0.fetchedAt) != nil }) else { throw ClientFailure.invalidResponse }
     }
 }
 enum Money {
-    static func format(_ cents: Int) -> String { String(format: "%d,%02d €", cents / 100, cents % 100) }
+    static func format(_ cents: Int) -> String { String(format: "%lld,%02lld €", Int64(cents / 100), Int64(cents % 100)) }
     static func parse(_ text: String) -> Int? {
         guard text.range(of: #"^[0-9]{1,6}([.,][0-9]{1,2})?\z"#, options: .regularExpression) != nil,
               let value = Decimal(string: text.replacingOccurrences(of: ",", with: "."), locale: Locale(identifier: "en_US_POSIX")) else { return nil }

@@ -110,8 +110,9 @@ struct OfferDetail: View {
             Section(offer.title) {
                 LabeledContent("Advertised goods price", value: Money.format(offer.priceCents))
                 LabeledContent("Package", value: offer.package)
-                LabeledContent("Deposit", value: offer.depositCents.map(Money.format) ?? "Unknown")
-                if let deposit = offer.depositCents { LabeledContent("Checkout total", value: Money.format(offer.priceCents + deposit)) }
+                LabeledContent("Advertised deposit", value: offer.depositCents.map(Money.format) ?? "Unknown")
+                if offer.count != 1 { Text("Multipack deposit basis needs checking; comparison uses goods price, not an assumed checkout total.").font(.caption) }
+                if offer.count == 1, let deposit = offer.depositCents { LabeledContent("Checkout total", value: Money.format(offer.priceCents + deposit)) }
                 if let value = offer.unitPriceCents { LabeledContent("Per litre / kilogram", value: Money.format(value)) }
                 if let value = offer.referenceCents { LabeledContent("Reference (\(offer.referenceType))", value: Money.format(value)) }
                 LabeledContent("Conditions", value: offer.eligibility)

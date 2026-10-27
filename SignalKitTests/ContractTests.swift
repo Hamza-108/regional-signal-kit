@@ -75,3 +75,13 @@ final class ContractTests: XCTestCase {
         do { _ = try await api.data("v1/snapshot"); XCTFail("Oversize accepted") } catch ClientFailure.payloadTooLarge {} catch { XCTFail("Wrong size error") }
     }
 }
+
+extension ContractTests {
+    func testUntrustedMoneyCannotOverflowCheckoutAndLargeUnitPriceFormatsExactly() throws {
+        var object = try JSONSerialization.jsonObject(with: APIClient.encode(UITestSupport.fixture())) as! [String:Any]
+        var offers = object["offers"] as! [[String:Any]];offers[0]["deposit_cents"] = Int.max;object["offers"] = offers
+        let excessive: OfflineSnapshot = try APIClient.decode(JSONSerialization.data(withJSONObject: object))
+        XCTAssertThrowsError(try excessive.validate())
+        XCTAssertEqual(Money.format(100_000_000_000),"1000000000,00 €")
+    }
+}
