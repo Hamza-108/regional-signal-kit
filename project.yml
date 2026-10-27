@@ -13,6 +13,11 @@ targets:
     type: application
     platform: iOS
     sources: [SignalKit]
+    info:
+      path: build/Generated-Info.plist
+      properties:
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.regionalsignal.client
@@ -20,8 +25,9 @@ targets:
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Signal Kit
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: Connect to your private home server to refresh and save observations for offline use.
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   SignalKitTests:
     type: bundle.unit-test
